@@ -10,7 +10,7 @@ from utils import *
 # NOTE: this program MUST be run from the go-plane-go directory
 
 def main():
-	print(parse_text_file("config/test_parser.txt"))
+	print(parse_text_file("config/twin_boom_v1.txt"))
 	# our_plane = PlaneGeometry("config/test_parser.txt")
 
 if __name__ == "__main__":

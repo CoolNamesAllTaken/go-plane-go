@@ -1,15 +1,25 @@
 flap_TO = 45
+
+# Horizontal Tail
 htail_span = 0.72
 htail_chord = 0.20
 htail_distance = 0.8
+
+# Vertical Tail
 vtail_distance = 0.8
 vtail_chord = 0.2
 vtail_span = 0.2
+
+# Fuselage
 fuse_diameter = 0.1
 fuse_length = 0.3
 fuse_shift = -0.1
 fuse_gap = 0.406
+
+# Wing
 wing_incidence = 0
 stab_incidence = 0
 wing_airfoil = sd7037.dat
 rho = 1.1
+
+potato : htail_span * htail_chord + htail_distance
