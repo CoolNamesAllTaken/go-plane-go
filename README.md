@@ -43,4 +43,4 @@ For Mac OSX only, you will need to follow [these instructions](https://github.co
 * function_name
 
 ## Running the Program
-Once the pipenv shell is activated, run the program from the home directory with `python3 src/go-plane-go.py`.
+Once the pipenv shell is activated, run the program from the home directory with `python3 src/go_plane_go.py`.

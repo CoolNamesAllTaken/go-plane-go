@@ -1,4 +1,10 @@
+name = potato
 flap_TO = 45
+
+# Simulation
+rho = 1.1
+mach = 0
+CL_takeoff : 1.5
 
 # Horizontal Tail
 htail_span = 0.72
@@ -13,13 +19,24 @@ vtail_span = 0.2
 # Fuselage
 fuse_diameter = 0.1
 fuse_length = 0.3
-fuse_shift = -0.1
-fuse_gap = 0.406
+fuse_x = -0.1
+fuse_y = 0.406 / 2
+fuse_z = 0
 
 # Wing
 wing_incidence = 0
 stab_incidence = 0
 wing_airfoil = sd7037.dat
-rho = 1.1
 
-potato : htail_span * htail_chord + htail_distance
+# Equations
+propulsion_weight : propulsion_mass * 9.81
+structure_weight : 1.5 * 9.81
+plane_weight : propulsion_weight + structure_weight
+plane_acceleration : ( thrust - plane_weight * 0.087 / ( plane_weight / 9.81 ) )
+ramp_time : ( 2 * 3.084 / plane_acceleration )**0.5
+launch_speed : plane_acceleration * ramp_time
+
+wing_area : plane_weight / ( 0.5 * rho * launch_speed **2 * CL_takeoff )
+wing_span : 5.3 / 3.28
+wing_chord : wing_area / wing_span
+AR : wing_span **2 / wing_area
