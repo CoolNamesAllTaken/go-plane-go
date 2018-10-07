@@ -1,0 +1,39 @@
+potato
+0
+#IYsym     IZsym     IZsym
+0         0         0
+
+26.971     16.692     1.616
+
+#Xref     Yref         Zref
+0         0         0
+
+#Profile Drag
+0.06
+
+#==============================================
+BODY
+Fuselage Left
+
+#NLengthwise     Spacing
+30.0            3
+
+TRANSLATE
+0.0     -0.406    0.0
+
+BFIL
+output/plane_geom_0_fuse.dat
+
+#==============================================
+BODY
+Fuselage Right
+
+#NLengthwise     Spacing
+30.0            3
+
+TRANSLATE
+0.0     -0.406    0.0
+
+BFIL
+output/plane_geom_0_fuse.dat
+
