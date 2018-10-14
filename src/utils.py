@@ -22,14 +22,14 @@ def parse_text_file(filename, vars=None):
 	# create variable dictionary if one is not provided
 	if vars is None:
 		vars = {}
-	with open(filename, 'r') as file:
-		lines = file.readlines()
+	with open(filename, 'r') as f:
+		lines = f.readlines()
 	line_num = 0
 	for line in lines:
 		words = line.split()
 
 		# skip blank or commented lines
-		if len(words) == 0 or words[0] == "#":
+		if len(words) == 0 or "#" in words[0]:
 			line_num += 1
 			continue;
 
@@ -63,6 +63,8 @@ def parse_text_file(filename, vars=None):
 			for i in range(len(var_expression_sentence)):
 				word = var_expression_sentence[i]
 				# expression word corresponds to existing value in vars
+				if "#" in word:
+					break # stop parsing expression upon encountering comment
 				if word in vars:
 					# replace expression word with value string
 					var_expression_sentence[i] = str(vars[word])
@@ -77,6 +79,11 @@ def parse_text_file(filename, vars=None):
 
 	return vars
 
+"""
+Helper function for parse_text_file and parse_results_file
+Inputs:
+	parse_word = string blob to be processed into a data type
+"""
 def parse_word(word):
 	# word is a string (not a number with 1 or 0 decimals)
 	if not word.replace('.', '', 1).lstrip("+-").isdigit():
@@ -98,13 +105,43 @@ Inputs:
 	element_index = index of elements to pull from input dictionary lists
 	output_dict = output dictionary of elements from index element_index in input dictioary list
 """
-def element_dict_from_lists_dict(lists_dict, element_index, element_dict=None):
+def element_dict_from_list_dict(list_dict, element_index, element_dict=None):
 	# create element dict if one is not provided
 	if element_dict is None:
 		element_dict = {}
-	for key in lists_dict.keys():
+	for key in list_dict.keys():
 		# check if value retrieved by key is subscriptable
-		if not isinstance(lists_dict[key], list):
+		if not isinstance(list_dict[key], list):
 			continue
-		element_dict[key] = lists_dict[key][element_index]
+		element_dict[key] = list_dict[key][element_index]
 	return element_dict
+
+"""
+Parses a particular type of text file where every value on the right of an "=" sign is associated with the string
+word to the left of the "=" sign.
+"""
+def parse_results_file(filename, vars=None):
+	# create variable dictionary if one is not provided
+	if vars is None:
+		vars = {}
+	with open(filename, 'r') as f:
+		lines = f.readlines()
+	line_num = 0
+	for line in lines:
+		words = line.split()
+		for i in range(len(words)):
+			if words[i] is "=":
+				vars[words[i-1]] = parse_word(words[i+1])
+	return vars
+
+def list_dict_from_element_dicts(element_dicts, list_dict=None):
+	# create lists dict if one is not provided
+	if list_dict is None:
+		list_dict = {}
+	# find all keys from first element dictionary, iterate through
+	for key in element_dicts[0].keys():
+		list_dict[key] = []
+		# add elements from all element dictionaries with the same key to list in list dictionary
+		for element_dict in element_dicts:
+			list_dict[key].append(element_dict[key])
+	return list_dict
