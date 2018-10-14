@@ -17,6 +17,7 @@ class PlaneGeometry:
 	def __init__(self, design_point_dict, design_rules_filename):
 		self.vars = design_point_dict # initialize design point
 		parse_text_file(design_rules_filename, self.vars) # evaluate design rules at design point
+
 		print(self.vars)
 
 	"""

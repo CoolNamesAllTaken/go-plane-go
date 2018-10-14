@@ -29,7 +29,7 @@ def parse_text_file(filename, vars=None):
 		words = line.split()
 
 		# skip blank or commented lines
-		if len(words) == 0 or words[0] == "#":
+		if len(words) == 0 or "#" in words[0]:
 			line_num += 1
 			continue;
 
@@ -63,6 +63,8 @@ def parse_text_file(filename, vars=None):
 			for i in range(len(var_expression_sentence)):
 				word = var_expression_sentence[i]
 				# expression word corresponds to existing value in vars
+				if "#" in word:
+					break # stop parsing expression upon encountering comment
 				if word in vars:
 					# replace expression word with value string
 					var_expression_sentence[i] = str(vars[word])

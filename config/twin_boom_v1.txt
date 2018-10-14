@@ -1,5 +1,5 @@
 name = potato
-flap_TO = 45
+flap_TO = 0
 
 # Simulation
 rho = 1.1
@@ -30,13 +30,63 @@ wing_airfoil = sd7037.dat
 
 # Equations
 propulsion_weight : propulsion_mass * 9.81
-structure_weight : 1.5 * 9.81
+
+# Structural Weight Calculations
+wing_span : 5.3 / 3.28 # initial assumption for wing span
+wing_chord = 0.28 # initial guess for wing chord
+
+## mass of the wing
+pi : 3.14159
+structure_mass : 0
+wing_thickness : wing_chord * 0.12
+wing_rho : 0.02811738725 * 0.001 #g/mm^3
+wing_mass : wing_span * wing_chord * wing_thickness * wing_rho
+structure_mass : structure_mass + wing_mass
+
+## mass of the fuselage (2x)
+fuse_width : fuse_diameter
+fuse_height : fuse_diameter
+fuse_thickness : 0.48 * 10 #mm
+fuse_rho : 0.05920150729 * 0.001 #g/mm^3
+fuse_mass : fuse_length * fuse_width * fuse_height * fuse_rho - ( fuse_length - fuse_thickness ) * ( fuse_width - fuse_thickness ) * ( fuse_height - fuse_thickness ) * fuse_rho
+structure_mass  : structure_mass + 2 * fuse_mass
+
+## mass of the Vtail (2x)
+vtail_thickness : vtail_chord * 0.12
+vtail_rho : wing_rho
+vtail_mass : vtail_span * vtail_chord * vtail_thickness * vtail_rho
+structure_mass : structure_mass + 2 * vtail_mass
+
+## mass of the Htail
+htail_thickness : htail_chord * 0.12
+htail_rho : wing_rho
+htail_mass : htail_chord * htail_span * htail_thickness * htail_rho
+structure_mass : structure_mass + htail_mass
+
+## mass of the tail booms (2x)
+tail_boom_OD : 0.8 * 10 * 2 #mm
+tail_boom_ID : 0.7 * 10 * 2 #mm
+tail_boom_len : vtail_distance + vtail_chord
+tail_boom_rho : 1.549108113 * 0.001 #g/mm^3
+tail_boom_mass : ( ( tail_boom_OD / 2 ) ** 2 * pi  -  ( tail_boom_ID / 2 ) ** 2 ) * tail_boom_len * tail_boom_rho
+structure_mass : structure_mass + 2 * tail_boom_mass
+
+# mass of the wing spar
+wing_spar_Owidth : 1 * 10 # mm
+wing_spar_Iwidth : 0.85 * 10 #mm
+wing_spar_Oheight : wing_spar_Owidth
+wing_spar_Iheight : wing_spar_Iwidth
+wing_spar_length : wing_span
+wing_spar_rho : 1.54954955 * 0.001 #g/mm^3
+wing_spar_mass : wing_spar_Owidth * wing_spar_Oheight * wing_spar_length * wing_spar_rho - ( wing_spar_Iwidth * wing_spar_Iheight * wing_spar_length * wing_spar_rho )
+structure_mass : structure_mass + wing_spar_mass
+
+structure_weight : structure_mass * 9.81
 plane_weight : propulsion_weight + structure_weight
 plane_acceleration : ( thrust * 9.81 - plane_weight * 0.087 / ( plane_weight / 9.81 ) )
 ramp_time : ( 2 * 3.084 / plane_acceleration )**0.5
 launch_speed : plane_acceleration * ramp_time
 
 wing_area : plane_weight / ( 0.5 * rho * launch_speed **2 * CL_takeoff )
-wing_span : 5.3 / 3.28
 wing_chord : wing_area / wing_span
 AR : wing_span **2 / wing_area

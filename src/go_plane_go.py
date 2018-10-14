@@ -17,7 +17,6 @@ test_points_filename = os.path.join("config","test_points.txt")
 
 def main():
 	generate_plane_geometries()
-	# our_plane = PlaneGeometry("config/test_parser.txt")
 
 def generate_plane_geometries():
 	eval = Evaluator(design_rules_filename, design_sweep_filename, test_points_filename)
@@ -28,10 +27,20 @@ def generate_plane_geometries():
 	plot_results(results_list)
 
 def plot_results(results_list):
-	for i in range(len(results_list)):
-		plt.plot(results_list[i]["Alpha"], results_list[i]["CLtot"])
-	plt.xlabel("Alpha")
-	plt.ylabel("CLtot")
+	plot_result_vars(results_list, "Alpha", "CLtot")
+	plot_result_vars(results_list, "Alpha", "CDtot")
 	plt.show()
+
+"""
+Plots var_2_name (y) vs. var_1_name (x)
+"""
+def plot_result_vars(results_list, var_1_name, var_2_name):
+	plt.figure("{} vs. {}".format(var_2_name, var_1_name))
+	for i in range(len(results_list)):
+		plt.plot(results_list[i][var_1_name], results_list[i][var_2_name], label="Plane Geometry {}".format(i))
+	plt.xlabel(var_1_name)
+	plt.ylabel(var_2_name)
+	plt.legend()
+	
 if __name__ == "__main__":
 	main()
