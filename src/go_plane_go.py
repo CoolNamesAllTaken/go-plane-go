@@ -1,6 +1,6 @@
 import numpy as np 
 import matplotlib.pyplot as plt
-import os
+import os.path
 
 # for testing only
 from utils import *
@@ -9,9 +9,9 @@ from evaluator import Evaluator
 
 # NOTE: this program MUST be run from the go-plane-go directory
 
-design_rules_filename = os.join("config","twin_boom_v1.txt")
-design_sweep_filename = os.join("config","design_sweep.txt")
-test_points_filename = os.join("config","test_points.txt")
+design_rules_filename = os.path.join("config","twin_boom_v1.txt")
+design_sweep_filename = os.path.join("config","design_sweep.txt")
+test_points_filename = os.path.join("config","test_points.txt")
 
 def main():
 	generate_plane_geometries()

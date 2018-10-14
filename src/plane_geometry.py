@@ -1,6 +1,5 @@
 from utils import *
 
-import os.path # for filename extension stripping
 import numpy as np
 
 avl_airfoil_dirname = "avl/airfoils/"

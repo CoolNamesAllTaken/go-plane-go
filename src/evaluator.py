@@ -1,11 +1,11 @@
 import subprocess
-import os
+import os.path
 
 # Import our own neato files
 from utils import * # for text file parsing
 from plane_geometry import PlaneGeometry
 
-avl_exe_path = os.join("lib", "avl", "avl3.35")
+avl_exe_path = os.path.join("lib", "avl", "avl3.35")
 output_dirname = "output"
 
 """
@@ -51,7 +51,7 @@ class Evaluator:
 			os.mkdir(output_dirname)
 		# fill output directory with geometry .txt, .run, and .dat files
 		for i in range(len(self.plane_geometries)):
-			self.plane_geometries[i].generate_files(os.join(output_dirname, "plane_geom_{}".format(i)))
+			self.plane_geometries[i].generate_files(os.path.join(output_dirname, "plane_geom_{}".format(i)))
 
 	def generate_run_files(self):
 		for test_point_num in range(self.test_points_dict["num_test_points"]):
@@ -59,15 +59,15 @@ class Evaluator:
 			for geom_num in range(len(self.plane_geometries)):
 				test_point_dict = element_dict_from_lists_dict(self.test_points_dict, test_point_num)
 				self.plane_geometries[geom_num].generate_run_file(
-					os.join(output_dirname, "plane_geom_{}".format(geom_num)),
-					os.join(output_dirname, "plane_geom_{}_test_point_{}".format(geom_num, test_point_num)),
+					os.path.join(output_dirname, "plane_geom_{}".format(geom_num)),
+					os.path.join(output_dirname, "plane_geom_{}_test_point_{}".format(geom_num, test_point_num)),
 					test_point_dict)
 
 	def evaluate_plane_geometries(self):
 		for geom_num in range(len(self.plane_geometries)):
 			print("Evaluating Geometry #{}".format(geom_num))
 			for test_point_num in range(self.test_points_dict["num_test_points"]):
-				plane_geometry_filename_no_ext = os.join(output_dirname, "plane_geom_{}_test_point_{}".format(
+				plane_geometry_filename_no_ext = os.path.join(output_dirname, "plane_geom_{}_test_point_{}".format(
 					geom_num,
 					test_point_num))
 				# TODO: launch and run AVL with run file, interpret results
