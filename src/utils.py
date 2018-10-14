@@ -18,7 +18,10 @@ Syntax for text file:
 	also_ok_array = [ 1 2 3 4 ]
 	expression_variable = variable_name * 2 + 0.3
 """
-def parse_text_file(filename, vars={}):
+def parse_text_file(filename, vars=None):
+	# create variable dictionary if one is not provided
+	if vars is None:
+		vars = {}
 	with open(filename, 'r') as file:
 		lines = file.readlines()
 	line_num = 0
@@ -86,3 +89,22 @@ def parse_word(word):
 		var = int(word)
 
 	return var
+
+"""
+Takes an input dictionary of lists, and builds an output dictionary of elements at the specified index in the
+lists of the input dictionary.
+Inputs:
+	input_dict = input dictionary of lists
+	element_index = index of elements to pull from input dictionary lists
+	output_dict = output dictionary of elements from index element_index in input dictioary list
+"""
+def element_dict_from_lists_dict(lists_dict, element_index, element_dict=None):
+	# create element dict if one is not provided
+	if element_dict is None:
+		element_dict = {}
+	for key in lists_dict.keys():
+		# check if value retrieved by key is subscriptable
+		if not isinstance(lists_dict[key], list):
+			continue
+		element_dict[key] = lists_dict[key][element_index]
+	return element_dict

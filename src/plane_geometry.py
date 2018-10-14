@@ -26,9 +26,18 @@ class PlaneGeometry:
 		filename_no_ext = path to output file without extension (will be created if it doesn't exist)
 	"""
 	def generate_files(self, filename_no_ext):
-		### Generate Run File
-		with open(filename_no_ext + ".run", "w+") as f:
-			f.write("LOAD {}\n".format(filename_no_ext + ".avl"))
+		self.generate_avl_file(filename_no_ext)
+
+	"""
+	Generates a .run file named filename_no_ext.run that will run this geometry with the parameters in test_point_dict
+	Inputs:
+		avl_filename_no_ext = name of associated .avl file
+		run_filename_no_ext = name of the .run file to be created
+		test_point_dict = dictionary of the relevant test conditions
+	"""
+	def generate_run_file(self, avl_filename_no_ext, run_filename_no_ext, test_point_dict):
+		with open(run_filename_no_ext + ".run", "w+") as f:
+			f.write("LOAD {}\n".format(avl_filename_no_ext + ".avl"))
 			f.write("OPER\n")
 			f.write("c1\n")
 			f.write("M {:.3f}\n".format(self.vars["rho"]))
@@ -37,14 +46,19 @@ class PlaneGeometry:
 			f.write("X {:.3f}\n\n".format(self.vars["wing_chord"]/4))
 			f.write("D1 D1 {:.3f}\n".format(self.vars["flap_TO"]))
 			f.write("D3 PM 0\n")
-			f.write("A A 7\n")
+			f.write("A A {}\n".format(test_point_dict["alpha"]))
 			f.write("X\n")
 			f.write("ST\n")
-			f.write("{}\n".format(filename_no_ext + "_trim.txt")) # TODO: generate trim file
+			f.write("{}\n".format(run_filename_no_ext + "_trim.txt")) # TODO: generate trim file
 			f.write("O\n\n\n")
 			f.write("Quit\n")
-
-		### Generate AVL File
+		
+	"""
+	Generates an .avl file containing the aircraft geometry
+	Inputs:
+		filename_no_ext = path to output file without extension (will be created if it doesn't exist)
+	"""
+	def generate_avl_file(self, filename_no_ext):
 		# overwrite file or create file if it doesn't exist
 		with open(filename_no_ext + ".avl", "w+") as f:
 			## Configuration Stuff
@@ -255,7 +269,6 @@ class PlaneGeometry:
 			f.write("NACA\n0012\n\n") #Airfoil
 			f.write("CONTROL\n#name        gain        XHinge        XYZhvec        SgnDup\n") #Rudder definition
 			f.write("rudder        1.0        0.7            0. 0. 0.        1.0\n\n")
-
 
 	"""
 	Creates a data file with coordinates defining the aircraft's fuselage
