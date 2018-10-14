@@ -28,6 +28,10 @@ def generate_plane_geometries():
 	plot_results(results_list)
 
 def plot_results(results_list):
-	plt.plot(results_list[0]["Alpha"], results_list[0]["CLtot"])
+	for i in range(len(results_list)):
+		plt.plot(results_list[i]["Alpha"], results_list[i]["CLtot"])
+	plt.xlabel("Alpha")
+	plt.ylabel("CLtot")
+	plt.show()
 if __name__ == "__main__":
 	main()
