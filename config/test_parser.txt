@@ -1,0 +1,6 @@
+potato = 12
+# this is a comment
+doublepotato = 24.0
+potatoname = fred
+
+potato_array = [1 2 3 4 5]

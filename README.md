@@ -3,7 +3,9 @@ A highly professional optimizer for Stanford Flight
 
 # Getting Started
 
-## Install Pipenv
+## Pipenv
+
+### Install Pipenv
 
 Pipenv is a cool package that lets us create a virtual environment, so that everyone is running on the samve version of python with the same packages.
 
@@ -18,10 +20,27 @@ parse_git_branch() {
 }
 ```
 
-## Run Pipenv
+### Run Pipenv
 
-Start your pipenv virtual environment with `pipenv shell`.  Run files with `pipenv python3 file-name.py`.
+Start your pipenv virtual environment with `pipenv shell`.  Run files with `pipenv run python filename.py`.
 
-## Quit Pipenv
+### Quit Pipenv
 
 Exit the pipenv virtual environment with the `exit` command, or ctrl+d.
+
+## MatPlotLib
+
+For Mac OSX only, you will need to follow [these instructions](https://github.com/JuliaPy/PyCall.jl/issues/218#issuecomment-267558858) to avoid the `ImportError: Python is not installed as a framework. The Mac OS X backend will not be able to function correctly if Python is not installed as a framework.` error.
+
+## Miscellaneous
+
+[How to edit this markdown file without effin it up](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet)
+
+[Capitalization for files and classes](https://softwareengineering.stackexchange.com/questions/308972/python-file-naming-convention)
+* ClassName
+* file_name (aka. module_name)
+* variable_name
+* function_name
+
+## Running the Program
+Once the pipenv shell is activated, run the program from the home directory with `pipenv run python src/go_plane_go.py`.

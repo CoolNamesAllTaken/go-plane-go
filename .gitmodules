@@ -1,0 +1,3 @@
+[submodule "AVLWrapper"]
+	path = AVLWrapper
+	url = https://github.com/renoelmendorp/AVLWrapper.git
