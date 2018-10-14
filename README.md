@@ -22,7 +22,7 @@ parse_git_branch() {
 
 ### Run Pipenv
 
-Start your pipenv virtual environment with `pipenv shell`.  Run files with `python3 file-name.py`.
+Start your pipenv virtual environment with `pipenv shell`.  Run files with `pipenv run python filename.py`.
 
 ### Quit Pipenv
 
@@ -43,4 +43,4 @@ For Mac OSX only, you will need to follow [these instructions](https://github.co
 * function_name
 
 ## Running the Program
-Once the pipenv shell is activated, run the program from the home directory with `python3 src/go_plane_go.py`.
+Once the pipenv shell is activated, run the program from the home directory with `pipenv run python src/go_plane_go.py`.
