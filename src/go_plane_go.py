@@ -17,7 +17,6 @@ def main():
 
 def generate_plane_geometries():
 	eval = Evaluator(design_rules_filename, design_sweep_filename)
-	eval.generate_plane_geometries()
-
+	eval.evaluate_plane_geometries()
 if __name__ == "__main__":
 	main()

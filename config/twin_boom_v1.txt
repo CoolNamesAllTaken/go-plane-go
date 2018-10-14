@@ -32,7 +32,7 @@ wing_airfoil = sd7037.dat
 propulsion_weight : propulsion_mass * 9.81
 structure_weight : 1.5 * 9.81
 plane_weight : propulsion_weight + structure_weight
-plane_acceleration : ( thrust - plane_weight * 0.087 / ( plane_weight / 9.81 ) )
+plane_acceleration : ( thrust * 9.81 - plane_weight * 0.087 / ( plane_weight / 9.81 ) )
 ramp_time : ( 2 * 3.084 / plane_acceleration )**0.5
 launch_speed : plane_acceleration * ramp_time
 

@@ -3,6 +3,8 @@ from utils import *
 import os.path # for filename extension stripping
 import numpy as np
 
+avl_airfoil_dirname = "avl/airfoils/"
+
 class PlaneGeometry:
 	"""
 	Constructor
@@ -21,17 +23,40 @@ class PlaneGeometry:
 	"""
 	Outputs the PlaneGeometry as an AVL-readable text file
 	Inputs:
-		filename = path to output .txt file (will be created if it doesn't exist)
+		filename_no_ext = path to output file without extension (will be created if it doesn't exist)
 	"""
-	def print_to_file(self, filename):
+	def generate_files(self, filename_no_ext):
+		### Generate Run File
+		with open(filename_no_ext + ".run", "w+") as f:
+			f.write("LOAD {}\n".format(filename_no_ext + ".avl"))
+			f.write("OPER\n")
+			f.write("c1\n")
+			f.write("M {:.3f}\n".format(self.vars["rho"]))
+			f.write("D {:.3f}\n".format(self.vars["rho"]))
+			f.write("G 9.81\n")
+			f.write("X {:.3f}\n\n".format(self.vars["wing_chord"]/4))
+			f.write("D1 D1 {:.3f}\n".format(self.vars["flap_TO"]))
+			f.write("D3 PM 0\n")
+			f.write("A A 7\n")
+			f.write("X\n")
+			f.write("ST\n")
+			f.write("{}\n".format(filename_no_ext + "_trim.txt")) # TODO: generate trim file
+			f.write("O\n\n\n")
+			f.write("Quit\n")
+
+		### Generate AVL File
 		# overwrite file or create file if it doesn't exist
-		with open(filename, "w+") as f:
+		with open(filename_no_ext + ".avl", "w+") as f:
 			## Configuration Stuff
 			f.write("{}\n".format(self.vars["name"])) # name of aircraft
 			f.write("{}\n\n".format(self.vars["mach"])) # mach number
 			f.write("#IYsym     IZsym     IZsym\n") # symmetry line
 			f.write("0         0         0\n\n") # reference area
-			f.write("{:.3f}     {:.3f}     {:.3f}\n\n".format(self.vars["wing_area"], self.vars["wing_chord"], self.vars["wing_span"]))
+			f.write("#Sref     Cref         Bref\n")
+			f.write("{:.3f}     {:.3f}     {:.3f}\n\n".format(
+				self.vars["wing_area"],
+				self.vars["wing_chord"],
+				self.vars["wing_span"]))
 			# reference point, overwritten later by CG definition
 			f.write("#Xref     Yref         Zref\n")
 			f.write("0         0         0\n\n")
@@ -41,8 +66,8 @@ class PlaneGeometry:
 
 			## Fuselage
 			# create fuselage.dat file
-			fuse_filename = os.path.splitext(filename)[0] + "_fuse.dat"
-			self.create_fuse_file(fuse_filename)
+			fuse_filename = filename_no_ext + "_fuse.dat"
+			self.generate_fuse_file(fuse_filename)
 			# more than one fuselage: use twin fuselage config
 			if self.vars["fuse_y"] > 0:
 				# left fuselage
@@ -71,157 +96,173 @@ class PlaneGeometry:
 
 			f.write("#==============================================\n") # section break
 			f.write("SURFACE\nInboard Wing\n\n") #declare inboard wing
+			f.write("#NChordwise    Spacing\n") #source distribution
+			f.write("10            3\n\n")
+			f.write("ANGLE\n{:.1f}\n\n".format(self.vars["wing_incidence"])) #declare wing incidence
+			f.write("YDUPLICATE\n0.0\n\n")
+			f.write("SCALE\n1.0    1.0    1.0\n\n") #scaling
+			f.write("TRANSLATE\n0.0   0.0   0.0\n\n") #translation
+			f.write("#----------------------------------------------\n") #Surface section break
+			f.write("SECTION\n")
+			f.write("#XLE   YLE   ZLE   Chord   Incidence   Nspan   Spacing\n") #Section geometry
+			f.write("0   0   {:.2f}   {:.2f}   0   {}   3\n\n".format(
+				self.vars["fuse_diameter"]/2,
+				self.vars["wing_chord"],
+				np.ceil(self.vars["fuse_y"]/0.02)))
+			f.write("NACA\n0012\n\n") #airfoil
+			f.write("CONTROL\n#name        gain        XHinge        XYZhvec        SgnDup\n") #Flap definition
+			f.write("flap        1.0        0.7            0. 0. 0.        1.0\n\n") 
+			
+			f.write("#----------------------------------------------\n") #Surface section break
+			f.write("SECTION\n")
+			f.write("#XLE   YLE   ZLE   Chord   Incidence   Nspan   Spacing\n") #Section geometry
+			f.write("0   {:.1f}   {:.2f}   {:.2f}   0   {}   3\n\n".format(
+				self.vars["fuse_y"], self.vars["fuse_diameter"]/2,
+				self.vars["wing_chord"],
+				np.ceil(self.vars["fuse_y"]/0.02)))
+			f.write("NACA\n0012\n\n") #airfoil
+			f.write("CONTROL\n#name        gain        XHinge        XYZhvec        SgnDup\n") #Flap definition
+			f.write("flap        1.0        0.7            0. 0. 0.        1.0\n\n") 
+			
+			f.write("#==============================================\n") # section break
+			f.write("SURFACE\nOutboard Wing\n\n") #declare outboard wing
+			f.write("#NChordwise    Spacing\n") #source distribution
+			f.write("10            3\n\n")
+			f.write("ANGLE\n{:.1f}\n\n".format(self.vars["wing_incidence"])) #declare wing incidence
+			f.write("YDUPLICATE\n0.0\n\n")
+			f.write("SCALE\n1.0    1.0    1.0\n\n") #scaling
+			f.write("TRANSLATE\n0.0   0.0   0.0\n\n") #translation
+			
+			f.write("#----------------------------------------------\n") #Surface section break
+			f.write("SECTION\n")
+			f.write("#XLE   YLE   ZLE   Chord   Incidence   Nspan   Spacing\n") #Section geometry
+			f.write("0   {:.1f}   {:.2f}   {:.2f}   0   {}   3\n\n".format(
+				self.vars["fuse_y"], self.vars["fuse_diameter"]/2,
+				self.vars["wing_chord"],
+				np.ceil(self.vars["fuse_y"]/0.02)))
+			f.write("AFIL 0.0 1.0\n") #Airfoil
+			f.write(avl_airfoil_dirname + "{:s}\n\n".format(self.vars["wing_airfoil"]))
+			f.write("CONTROL\n#name        gain        XHinge        XYZhvec        SgnDup\n") #Flap definition
+			f.write("flap        1.0        0.7            0. 0. 0.        1.0\n\n") 
+			f.write("CONTROL\n#name        gain        XHinge        XYZhvec        SgnDup\n") #Aileron definition
+			f.write("aileron        1.0        0.7            0. 0. 0.        -1.0\n\n") 
+			
+			f.write("#----------------------------------------------\n") #Surface section break
+			f.write("SECTION\n")
+			f.write("#XLE   YLE   ZLE   Chord   Incidence   Nspan   Spacing\n") #Section geometry
+			f.write("0   {:.1f}   {:.2f}   {:.2f}   0\n\n".format(
+				self.vars["wing_span"]/2,
+				self.vars["fuse_diameter"]/2,
+				self.vars["wing_chord"]))
+			f.write("AFIL 0.0 1.0\n") #Airfoil
+			f.write(avl_airfoil_dirname + "{:s}\n\n".format(self.vars["wing_airfoil"]))
+			f.write("CONTROL\n#name        gain        XHinge        XYZhvec        SgnDup\n") #Flap definition
+			f.write("flap        1.0        0.7            0. 0. 0.        1.0\n\n") 
+			f.write("CONTROL\n#name        gain        XHinge        XYZhvec        SgnDup\n") #Aileron definition
+			f.write("aileron        1.0        0.7            0. 0. 0.        -1.0\n\n") 
+			
+			f.write("#==============================================\n") # section break
+			f.write("SURFACE\nHStab\n\n") #declare Hstab
+			f.write("#NChordwise    Spacing\n") #source distribution
+			f.write("10            3\n\n")
+			f.write("ANGLE\n{:.1f}\n\n".format(self.vars["stab_incidence"])) #declare stab incidence
+			f.write("YDUPLICATE\n0.0\n\n")
+			f.write("SCALE\n1.0    1.0    1.0\n\n") #scaling
+			f.write("TRANSLATE\n0.0   0.0   0.0\n\n") #translation
+			
+			f.write("#----------------------------------------------\n") #Surface section break
+			f.write("SECTION\n")
+			f.write("#XLE   YLE   ZLE   Chord   Incidence   Nspan   Spacing\n") #Section geometry
+			f.write("{:.3f}   0   {:.2f}   {:.2f}   0   {}   3\n\n".format(
+				self.vars["htail_distance"], self.vars["fuse_diameter"]+self.vars["vtail_span"],
+				self.vars["htail_chord"],
+				np.ceil(self.vars["fuse_y"]/0.02)))
+			f.write("NACA\n0012\n\n") #Airfoil
+			f.write("CONTROL\n#name        gain        XHinge        XYZhvec        SgnDup\n") #Elevator definition
+			f.write("elevator        1.0        0.7            0. 0. 0.        1.0\n\n")
+			
+			f.write("SECTION\n")
+			f.write("#XLE   YLE   ZLE   Chord   Incidence   Nspan   Spacing\n") #Section geometry
+			f.write("{:.3f}   {:.3f}   {:.2f}   {:.2f}   0   {}   3\n\n".format(
+				self.vars["htail_distance"],
+				self.vars["htail_span"]/2,
+				self.vars["fuse_diameter"]+self.vars["vtail_span"],
+				self.vars["htail_chord"],
+				np.ceil(self.vars["fuse_y"]/0.02)))
+			f.write("NACA\n0012\n\n") #Airfoil
+			f.write("CONTROL\n#name        gain        XHinge        XYZhvec        SgnDup\n") #Elevator definition
+			f.write("elevator        1.0        0.7            0. 0. 0.        1.0\n\n")
 
-# fprintf(fid, '#==============================================\n') ;%section break
-# fprintf(fid, 'SURFACE\nInboard Wing\n\n'); %declare Inboard Wing
-# fprintf(fid, '#NChorsewise     Spacing\n'); %source distribution
-# fprintf(fid, '10            3.0\n\n');
-# fprintf(fid, 'ANGLE\n%.1f\n\n', wing_incidence); %declare Wing incidence
-# fprintf(fid, 'YDUPLICATE\n0.0\n\n'); %declare Wing incidence
-# fprintf(fid, 'SCALE\n'); %declare Wing incidence
-# fprintf(fid, '1.0    1.0    1.0\n\n'); %scaling
-# fprintf(fid, 'TRANSLATE\n'); %Translation
-# fprintf(fid, '0.0    0.0    0.0\n\n'); %scaling
+			f.write("#==============================================\n") # section break
+			f.write("SURFACE\nVstab Left\n\n") #declare Fin
+			f.write("#NChordwise    Spacing\n") #source distribution
+			f.write("10            3\n\n")
+			f.write("ANGLE\n0\n\n") #declare fin incidence
+			f.write("SCALE\n1.0    1.0    1.0\n\n") #scaling
+			f.write("TRANSLATE\n0.0   0.0   0.0\n\n") #translation
+			f.write("#----------------------------------------------\n") #Surface section break
+			f.write("SECTION\n")
+			f.write("#XLE   YLE   ZLE   Chord   Incidence   Nspan   Spacing\n") #Section geometry
+			f.write("{:.3f}   {:.3f}   {:.2f}   {:.2f}   0   {}   3\n\n".format(
+				self.vars["vtail_distance"],
+				-self.vars["fuse_y"],
+				self.vars["fuse_diameter"],
+				self.vars["vtail_chord"],
+				np.ceil(self.vars["vtail_span"]/0.02)))
+			f.write("NACA\n0012\n\n") #Airfoil
+			f.write("CONTROL\n#name        gain        XHinge        XYZhvec        SgnDup\n") #Rudder definition
+			f.write("rudder        1.0        0.7            0. 0. 0.        1.0\n\n") 
+			
+			f.write("SECTION\n")
+			f.write("#XLE   YLE   ZLE   Chord   Incidence   Nspan   Spacing\n") #Section geometry
+			f.write("{:.3f}   {:.3f}   {:.2f}   {:.2f}   0   {}   3\n\n".format(
+				self.vars["vtail_distance"],
+				-self.vars["fuse_y"],
+				self.vars["fuse_diameter"]+self.vars["vtail_span"],
+				self.vars["vtail_chord"],
+				np.ceil(self.vars["vtail_span"]/0.02)))
+			f.write("NACA\n0012\n\n") #Airfoil
+			f.write("CONTROL\n#name        gain        XHinge        XYZhvec        SgnDup\n") #Rudder definition
+			f.write("rudder        1.0        0.7            0. 0. 0.        1.0\n\n")            
+			f.write("#==============================================\n") # section break
+			f.write("SURFACE\nVstab Right\n\n") #declare Fin
+			f.write("#NChordwise    Spacing\n") #source distribution
+			f.write("10            3\n\n")
+			f.write("ANGLE\n0\n\n") #declare fin incidence
+			f.write("SCALE\n1.0    1.0    1.0\n\n") #scaling
+			f.write("TRANSLATE\n0.0   0.0   0.0\n\n") #translation
+			f.write("#----------------------------------------------\n") #Surface section break
+			f.write("SECTION\n")
+			f.write("#XLE   YLE   ZLE   Chord   Incidence   Nspan   Spacing\n") #Section geometry
+			f.write("{:.3f}   {:.3f}   {:.2f}   {:.2f}   0   {}   3\n\n".format(
+				self.vars["vtail_distance"],
+				self.vars["fuse_y"],
+				self.vars["fuse_diameter"],
+				self.vars["vtail_chord"],
+				np.ceil(self.vars["vtail_span"]/0.02)))
+			f.write("NACA\n0012\n\n") #Airfoil
+			f.write("CONTROL\n#name        gain        XHinge        XYZhvec        SgnDup\n") #Rudder definition
+			f.write("rudder        1.0        0.7            0. 0. 0.        1.0\n\n") 
+			
+			f.write("SECTION\n")
+			f.write("#XLE   YLE   ZLE   Chord   Incidence   Nspan   Spacing\n") #Section geometry
+			f.write("{:.3f}   {:.3f}   {:.2f}   {:.2f}   0   {}   3\n\n".format(
+				self.vars["vtail_distance"],
+				self.vars["fuse_y"],
+				self.vars["fuse_diameter"]+self.vars["vtail_span"],
+				self.vars["vtail_chord"],
+				np.ceil(self.vars["vtail_span"]/0.02)))
+			f.write("NACA\n0012\n\n") #Airfoil
+			f.write("CONTROL\n#name        gain        XHinge        XYZhvec        SgnDup\n") #Rudder definition
+			f.write("rudder        1.0        0.7            0. 0. 0.        1.0\n\n")
 
-# fprintf(fid, '#----------------------------------------------\n'); %surface section break
-# fprintf(fid, 'SECTION\n');
-# fprintf(fid, '#XLE    YLE    ZLE    Chord        Incidence    NSpan        Spacing\n');%Section geometry
-# fprintf(fid, '0    0    %.2f    %.2f        0        %i        3\n\n', fuse_diameter/2, wing_chord, np.ceil(fuse_y/0.02));
-# fprintf(fid, 'NACA\n0012\n\n'); %Airfoil
-# fprintf(fid, 'CONTROL\n#name        gain        XHinge        XYZhvec        SgnDup\n'); %Flaps definition
-# fprintf(fid, 'flap        1.0        0.7            0. 0. 0.        1.0\n\n');
-
-# fprintf(fid, '#----------------------------------------------\n'); %surface section break
-# fprintf(fid, 'SECTION\n');
-# fprintf(fid, '#XLE    YLE    ZLE    Chord        Incidence    NSpan        Spacing\n');%Section geometry
-# fprintf(fid, '0    %.1f    %.2f    %.2f        0        %i        3\n\n', fuse_y, fuse_diameter/2, wing_chord, np.ceil(fuse_y/0.02));
-# fprintf(fid, 'NACA\n0012\n\n'); %Airfoil
-# fprintf(fid, 'CONTROL\n#name        gain        XHinge        XYZhvec        SgnDup\n'); %Flaps definition
-# fprintf(fid, 'flap        1.0        0.7            0. 0. 0.        1.0\n\n');
-
-# fprintf(fid, '#==============================================\n') ;%section break
-# fprintf(fid, 'SURFACE\nOutboard Wing\n\n'); %declare Inboard Wing
-# fprintf(fid, '#NChorsewise     Spacing\n'); %source distribution
-# fprintf(fid, '10            3.0\n\n');
-# fprintf(fid, 'ANGLE\n%.1f\n\n', wing_incidence); %declare Wing incidence
-# fprintf(fid, 'YDUPLICATE\n0.0\n\n'); %declare Wing incidence
-# fprintf(fid, 'SCALE\n'); %declare Wing incidence
-# fprintf(fid, '1.0    1.0    1.0\n\n'); %scaling
-# fprintf(fid, 'TRANSLATE\n'); %Translation
-# fprintf(fid, '0.0    0.0    0.0\n\n'); %scaling
-
-# fprintf(fid, '#----------------------------------------------\n'); %surface section break
-# fprintf(fid, 'SECTION\n');
-# fprintf(fid, '#XLE    YLE    ZLE    Chord        Incidence    NSpan        Spacing\n');%Section geometry
-# fprintf(fid, '0    %.1f    %.2f    %.2f        0        %i        3\n\n', fuse_y, fuse_diameter/2, wing_chord, np.ceil(fuse_y/0.02));
-# fprintf(fid, 'AFIL 0.0 1.0\n'); %Airfoil
-# fprintf(fid, '%s\n\n', wing_airfoil);
-# fprintf(fid, 'CONTROL\n#name        gain        XHinge        XYZhvec        SgnDup\n'); %Flaps definition
-# fprintf(fid, 'flap        1.0        0.7            0. 0. 0.        1.0\n\n');
-# fprintf(fid, 'CONTROL\n#name        gain        XHinge        XYZhvec        SgnDup\n'); %Flaps definition
-# fprintf(fid, 'aileron        1.0        0.7            0. 0. 0.        -1.0\n\n');
-
-# fprintf(fid, '#----------------------------------------------\n'); %surface section break
-# fprintf(fid, 'SECTION\n');
-# fprintf(fid, '#XLE    YLE    ZLE    Chord        Incidence\n');%Section geometry
-# fprintf(fid, '0    %.1f    %.2f    %.2f        0\n\n', wing_span/2, fuse_diameter/2, wing_chord);
-# fprintf(fid, 'AFIL 0.0 1.0\n'); %Airfoil
-# fprintf(fid, '%s\n\n', wing_airfoil);
-# fprintf(fid, 'CONTROL\n#name        gain        XHinge        XYZhvec        SgnDup\n'); %Flaps definition
-# fprintf(fid, 'flap        1.0        0.7            0. 0. 0.        1.0\n\n');
-# fprintf(fid, 'CONTROL\n#name        gain        XHinge        XYZhvec        SgnDup\n'); %Flaps definition
-# fprintf(fid, 'aileron        1.0        0.7            0. 0. 0.        -1.0\n\n');
-
-
-# fprintf(fid, '#==============================================\n'); %section break
-# fprintf(fid, 'SURFACE\nHStab\n\n'); %declare Hstab
-# fprintf(fid, '#NChorsewise     Spacing\n'); %source distribution
-# fprintf(fid, '10            3.0\n\n');
-# fprintf(fid, 'ANGLE\n%.1f\n\n', stab_incidence); %declare Hstab incidence
-# fprintf(fid, 'YDUPLICATE\n0.0\n\n'); %declare Hstab incidence
-# fprintf(fid, 'SCALE\n'); %declare Hstab scale
-# fprintf(fid, '1.0    1.0    1.0\n\n') ;
-# fprintf(fid, 'TRANSLATE\n'); %Translation
-# fprintf(fid, '0.0    0.0    0.0\n\n'); 
-
-# fprintf(fid, '#----------------------------------------------\n'); %surface section break
-# fprintf(fid, 'SECTION\n');
-# fprintf(fid, '#XLE    YLE    ZLE    Chord        Incidence    NSpan        Spacing\n');%Section geometry
-# fprintf(fid, '%.3f    0    %.2f    %.2f        0        %i        3\n\n', htail_dist, fuse_diameter+vtail_span, htail_chord, np.ceil(htail_span/2/0.04));
-# fprintf(fid, 'NACA\n0012\n\n'); %Airfoil
-# fprintf(fid, 'CONTROL\n#name        gain        XHinge        XYZhvec        SgnDup\n'); %Elevator definition
-# fprintf(fid, 'elevator        1.0        0.7            0. 0. 0.        1.0\n\n');
-
-
-# fprintf(fid, '#----------------------------------------------\n'); %surface section break
-# fprintf(fid, 'SECTION\n');
-# fprintf(fid, '#XLE    YLE    ZLE    Chord        Incidence    NSpan        Spacing\n');%Section geometry
-# fprintf(fid, '%.3f    %.3f    %.2f    %.2f        0        %i        3\n\n', htail_dist, htail_span/2, fuse_diameter+vtail_span, htail_chord, np.ceil(htail_span/2/0.04));
-# fprintf(fid, 'NACA\n0012\n\n'); %Airfoil
-# fprintf(fid, 'CONTROL\n#name        gain        XHinge        XYZhvec        SgnDup\n'); %Elevator definition
-# fprintf(fid, 'elevator        1.0        0.7            0. 0. 0.        1.0\n\n');
-
-# fprintf(fid, '#==============================================\n'); %section break
-# fprintf(fid, 'SURFACE\nVstab Left\n\n'); %declare Fin
-# fprintf(fid, '#NChorsewise     Spacing\n'); %source distribution
-# fprintf(fid, '10            3.0\n\n');
-# fprintf(fid, 'ANGLE\n0\n\n', stab_incidence); %declare Fin incidence
-# fprintf(fid, 'SCALE\n'); %Scaling
-# fprintf(fid, '1.0    1.0    1.0\n\n');
-# fprintf(fid, 'TRANSLATE\n'); %Translation
-# fprintf(fid, '0.0    0.0    0.0\n\n');
-
-# fprintf(fid, '#----------------------------------------------\n'); %surface section break
-# fprintf(fid, 'SECTION\n');
-# fprintf(fid, '#XLE    YLE    ZLE    Chord        Incidence    NSpan        Spacing\n');%Section geometry
-# fprintf(fid, '%.3f    %.3f    %.2f    %.2f        0        %i        3\n\n', vtail_dist, -fuse_y, fuse_diameter, vtail_chord, np.ceil(vtail_span/0.02));
-# fprintf(fid, 'NACA\n0012\n\n'); %Airfoil
-# fprintf(fid, 'CONTROL\n#name        gain        XHinge        XYZhvec        SgnDup\n'); %rudder definition
-# fprintf(fid, 'rudder        1.0        0.7            0. 0. 0.        1.0\n\n');
-
-
-# fprintf(fid, '#----------------------------------------------\n'); %surface section break
-# fprintf(fid, 'SECTION\n');
-# fprintf(fid, '#XLE    YLE    ZLE    Chord        Incidence    NSpan        Spacing\n');%Section geometry
-# fprintf(fid, '%.3f    %.3f    %.2f    %.2f        0        %i        3\n\n', vtail_dist, -fuse_y, fuse_diameter+vtail_span, vtail_chord, np.ceil(vtail_span/0.02));
-# fprintf(fid, 'NACA\n0012\n\n'); %Airfoil
-# fprintf(fid, 'CONTROL\n#name        gain        XHinge        XYZhvec        SgnDup\n'); %Flaps definition
-# fprintf(fid, 'rudder        1.0        0.7            0. 0. 0.        1.0\n\n');
-
-# fprintf(fid, '#==============================================\n'); %section break
-# fprintf(fid, 'SURFACE\nVstab Right\n\n'); %declare Fin
-# fprintf(fid, '#NChorsewise     Spacing\n'); %source distribution
-# fprintf(fid, '10            3.0\n\n');
-# fprintf(fid, 'ANGLE\n0\n\n', stab_incidence); %declare Fin incidence
-# fprintf(fid, 'SCALE\n'); %Scaling
-# fprintf(fid, '1.0    1.0    1.0\n\n');
-# fprintf(fid, 'TRANSLATE\n'); %Translation
-# fprintf(fid, '0.0    0.0    0.0\n\n');
-
-# fprintf(fid, '#----------------------------------------------\n'); %surface section break
-# fprintf(fid, 'SECTION\n');
-# fprintf(fid, '#XLE    YLE    ZLE    Chord        Incidence    NSpan        Spacing\n');%Section geometry
-# fprintf(fid, '%.3f    %.3f    %.2f    %.2f        0        %i        3\n\n', vtail_dist, fuse_y, fuse_diameter, vtail_chord, np.ceil(vtail_span/0.02));
-# fprintf(fid, 'NACA\n0012\n\n'); %Airfoil
-# fprintf(fid, 'CONTROL\n#name        gain        XHinge        XYZhvec        SgnDup\n'); %rudder definition
-# fprintf(fid, 'rudder        1.0        0.7            0. 0. 0.        1.0\n\n');
-
-
-# fprintf(fid, '#----------------------------------------------\n'); %surface section break
-# fprintf(fid, 'SECTION\n');
-# fprintf(fid, '#XLE    YLE    ZLE    Chord        Incidence    NSpan        Spacing\n');%Section geometry
-# fprintf(fid, '%.3f    %.3f    %.2f    %.2f        0        %i        3\n\n', vtail_dist, fuse_y, fuse_diameter+vtail_span, vtail_chord, np.ceil(vtail_span/0.02));
-# fprintf(fid, 'NACA\n0012\n\n'); %Airfoil
-# fprintf(fid, 'CONTROL\n#name        gain        XHinge        XYZhvec        SgnDup\n'); %Flaps definition
-# fprintf(fid, 'rudder        1.0        0.7            0. 0. 0.        1.0\n\n');
-# fclose(fid);
 
 	"""
 	Creates a data file with coordinates defining the aircraft's fuselage
 	Inputs:
 		fuse_filename = file path to store coordinates in (should be .dat)
 	"""
-	def create_fuse_file(self, fuse_filename):
+	def generate_fuse_file(self, fuse_filename):
 		# create array of x coordinates from nose->tail->nose
 		fuse_x_arr = np.arange(
 			0,
@@ -237,8 +278,7 @@ class PlaneGeometry:
 				self.vars["fuse_length"] - self.vars["fuse_diameter"]/2 + self.vars["fuse_diameter"]/20,
 				self.vars["fuse_length"],
 				step = self.vars["fuse_diameter"]/20))
-		fuse_x_arr = np.append(fuse_x_arr, np.flipud(fuse_x_arr)[1:]) # append reversed array to end, without overlapping the last point
-		print("fuse_x_arr = {}".format(fuse_x_arr))
+		fuse_x_arr = np.append(fuse_x_arr, np.flipud(fuse_x_arr)[1:-1]) # append reversed array to end, without overlapping the last point
 
 		# write coordinates to .dat file
 		with open(fuse_filename, "w+") as f:
