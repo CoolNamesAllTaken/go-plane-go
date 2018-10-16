@@ -11,9 +11,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-p", "--plotonly", help="just plot stuff", action="store_true")
 args = parser.parse_args()
 
-design_rules_filename = os.path.join("config","twin_boom_v1.txt")
-design_sweep_filename = os.path.join("config","design_sweep.txt")
-test_points_filename = os.path.join("config","test_points.txt")
+design_rules_filename = os.path.join("config","design_rules","twin_boom_v1.txt")
+design_sweep_filename = os.path.join("config","design_sweep","design_sweep.txt")
+test_points_filename = os.path.join("config","test_points","test_points.txt")
 
 def main():
 	generate_plane_geometries()
