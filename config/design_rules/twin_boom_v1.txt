@@ -20,7 +20,7 @@ vtail_span = 0.2
 fuse_diameter = 0.1
 fuse_length = 0.3
 fuse_x = -0.1
-fuse_y = 0.406 / 2
+fuse_y : 0.406 / 2
 fuse_z = 0
 
 # Wing
@@ -29,10 +29,8 @@ stab_incidence = 0
 wing_airfoil = sd7037.dat
 
 # Equations
-propulsion_weight : propulsion_mass * 9.81
-
 # Structural Weight Calculations
-wing_span : 5.3 / 3.28 # initial assumption for wing span
+wing_span : 5.3 / 3.28 # initial assumption for wing span, converted to meters
 wing_chord = 0.28 # initial guess for wing chord
 
 ## mass of the wing
@@ -81,9 +79,9 @@ wing_spar_rho : 1.54954955 * 0.001 #g/mm^3
 wing_spar_mass : wing_spar_Owidth * wing_spar_Oheight * wing_spar_length * wing_spar_rho - ( wing_spar_Iwidth * wing_spar_Iheight * wing_spar_length * wing_spar_rho )
 structure_mass : structure_mass + wing_spar_mass
 
-structure_weight : structure_mass * 9.81
-plane_weight : propulsion_weight + structure_weight
-plane_acceleration : ( thrust * 9.81 - plane_weight * 0.087 / ( plane_weight / 9.81 ) )
+plane_mass : propulsion_mass + structure_mass
+plane_weight : plane_mass * 9.81
+plane_acceleration : (thrust_static * 9.81 - plane_weight * 0.087) / (plane_mass) # 0.087 = sin(5 degrees)
 ramp_time : ( 2 * 3.084 / plane_acceleration )**0.5
 launch_speed : plane_acceleration * ramp_time
 

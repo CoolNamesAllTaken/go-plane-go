@@ -20,26 +20,115 @@ def main():
 
 def generate_plane_geometries():
 	eval = Evaluator(design_rules_filename, design_sweep_filename, test_points_filename)
-	if args.plotonly:
-		results_list = eval.evaluate_plane_geometries(run_avl=False)
-	else:
-		results_list = eval.evaluate_plane_geometries(run_avl=True)
-	plot_results(results_list)
+
+
+	# mission 1 analysis
+	# run AVL and reuse results for m2, m3
+	m1_results_list = eval.evaluate_plane_geometries(run_avl=not args.plotonly, 
+		post_process_filename="config/post_process/mission_1_post_process.txt")
+	calculate_cruise_conditions(m1_results_list)
+	m1_score = np.ones(len(m1_results_list))
+	
+	print("===M1 SCORE===")
+	print(m1_score)
+
+	# mission 2 analysis
+	m2_results_list = eval.evaluate_plane_geometries(run_avl=False,
+		post_process_filename="config/post_process/mission_2_post_process.txt")
+	calculate_cruise_conditions(m2_results_list)
+	# lap time for each geometry
+	m2_lap_time_list = np.asarray([m2_result["time_lap"] for m2_result in m2_results_list])
+	m2_time_list = 3 *  m2_lap_time_list + 90 # assume 30sec / turn
+	# min lap time of all teams for m2
+	m2_time_min_list = np.asarray([m2_result["time_min"][0] for m2_result in m2_results_list])
+	m2_score = 1.0 + m2_time_min_list / m2_time_list # scores for each geometry
+	
+	print("===M2 SCORE===")
+	print(m2_score)
+
+
+	# mission 3 analysis
+	m3_results_list = eval.evaluate_plane_geometries(run_avl=False,
+		post_process_filename="config/post_process/mission_3_post_process.txt")
+	calculate_cruise_conditions(m3_results_list)
+	m3_endurance_list = np.asarray([m3_result["endurance"][0] * 60 for m3_result in m3_results_list]) # seconds
+	m3_time_lap_list = np.asarray([m3_result["time_lap"] for m3_result in m3_results_list])
+	m3_laps = np.floor(m3_endurance_list / m3_time_lap_list)
+	m3_score = 2.0 + m3_laps
+	
+	print("===M3 SCORE===")
+	print(m3_score)
+
+	# total score
+	total_score = m1_score + m2_score + m3_score
+
+	plt.figure("Scores")
+	geom_nums = range(len(m1_results_list))
+	plt.plot(geom_nums, m1_score, label="M1 Score")
+	plt.plot(geom_nums, m2_score, label="M2 Score")
+	plt.plot(geom_nums, m3_score, label="M3 Score")
+	plt.plot(geom_nums, total_score, label="Total Score")
+	plt.legend()
+
+	plot_result_vars_vs_tp(m1_results_list, "v", "D")
+	plot_result_vars_vs_tp(m1_results_list, "v", "T")
+	plot_result_vars_vs_geom(m1_results_list, "time_lap")
+	# plt.show()
+
+	plt.show()
+
+def calculate_cruise_conditions(results_list):
+	# iterate through plane geometries
+	for i in range(len(results_list)):
+		# list dictionary with results for a test point
+		results_list[i]["v"] = np.sqrt((results_list[i]["plane_weight"] / 
+			(0.5 * results_list[i]["rho"] * results_list[i]["Sref"] * results_list[i]["CLtot"])))
+		# linear interpolation of thrust
+		results_list[i]["thrust"] = (results_list[i]["v_pitch"] - results_list[i]["v"]) / results_list[i]["v_pitch"] * results_list[i]["thrust_static"]
+		results_list[i]["q_inf"] = 0.5 * results_list[i]["rho"] * results_list[i]["v"]**2 
+		results_list[i]["T"] = results_list[i]["thrust"] * 9.81 # convert to Newtons from kg
+		results_list[i]["L"] = results_list[i]["q_inf"] * results_list[i]["Sref"] * np.asarray(results_list[i]["CLtot"])
+		results_list[i]["D"] = results_list[i]["q_inf"] * results_list[i]["Sref"] * results_list[i]["CDtot"]
+
+		# find thrust where T = D
+		thrust_excess = results_list[i]["T"] - results_list[i]["D"]
+		results_list[i]["v_cruise"] = np.interp(0, thrust_excess, results_list[i]["v"]) # m/s
+		results_list[i]["time_lap"] = 1220 / results_list[i]["v_cruise"] + 30 # seconds
 
 def plot_results(results_list):
-	plot_result_vars(results_list, "Alpha", "CLtot")
-	plot_result_vars(results_list, "Alpha", "CDtot")
+	plot_result_vars_vs_tp(results_list, "Alpha", "CLtot")
+	plot_result_vars_vs_tp(results_list, "Alpha", "CDtot")
 	plt.show()
 
 """
-Plots var_2_name (y) vs. var_1_name (x)
+Plots var_2_name (y) vs. var_1_name (x) for each geometry across test points
 """
-def plot_result_vars(results_list, var_1_name, var_2_name):
-	plt.figure("{} vs. {}".format(var_2_name, var_1_name))
+def plot_result_vars_vs_tp(results_list, var_1_name, var_2_name, new_figure=True):
+	if new_figure:
+		plt.figure("{} vs. {}".format(var_2_name, var_1_name))
 	for i in range(len(results_list)):
 		plt.plot(results_list[i][var_1_name], results_list[i][var_2_name], label="Plane Geometry {}".format(i))
 	plt.xlabel(var_1_name)
 	plt.ylabel(var_2_name)
+	plt.legend()
+
+"""
+Plots var_name (y) across geometries.  If var is subscriptable, takes the first entry.
+"""
+def plot_result_vars_vs_geom(results_list, var_name, new_figure=True):
+	if new_figure:
+		plt.figure("{} vs. Geom".format(var_name))
+
+	# take first element of var if it is subscriptable
+	try:
+		var_list = [result[var_name][0] for result in results_list]
+	except:
+		var_list = [result[var_name] for result in results_list]
+	
+	geom_list = range(len(results_list))
+	plt.plot(geom_list, var_list, label=var_name)
+	plt.xlabel("Geometry")
+	plt.ylabel(var_name)
 	plt.legend()
 	
 if __name__ == "__main__":
