@@ -161,6 +161,24 @@ def list_dict_from_element_dicts(element_dicts, list_dict=None):
 			pass
 	return list_dict
 
+"""
+Extracts the entry "var_name" from a list of dictionaries and returns them as a list
+Inputs:
+	dict_list = list of dictionaries with strings as keys
+	var_name = string to use as key in each dictionary
+Returns:
+	var_list = list of entries in each dictionary accessed with string key.  If dictionary
+		entries are subscriptable, creates a list of the first elements in each list.
+"""
+def slice_list_of_dicts(dict_list, var_name):
+	# take first element of var if it is subscriptable
+	try:
+		var_list = [curr_dict[var_name][0] for curr_dict in dict_list]
+	except:
+		var_list = [curr_dict[var_name] for curr_dict in dict_list]
+		
+	return var_list
+
 # def ndarray_dict_from_element_dicts(element_dicts, list_dict=None):
 # 	# create lists dict if one is not provided
 # 	if list_dict is None:

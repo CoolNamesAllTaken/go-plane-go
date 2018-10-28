@@ -1,9 +1,12 @@
 import numpy as np 
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D # for 3d plotting
 import os.path
 import argparse
 
 from evaluator import Evaluator
+
+from utils import *
 
 # NOTE: this program MUST be run from the go-plane-go directory
 
@@ -38,10 +41,10 @@ def generate_plane_geometries():
 	calculate_cruise_conditions(m2_results_list)
 	# lap time for each geometry
 	m2_lap_time_list = np.asarray([m2_result["time_lap"] for m2_result in m2_results_list])
-	m2_time_list = 3 *  m2_lap_time_list + 90 # assume 30sec / turn
+	m2_time_list = 3.0 *  m2_lap_time_list + 90.0 # assume 30sec / turn
 	# min lap time of all teams for m2
 	m2_time_min_list = np.asarray([m2_result["time_min"][0] for m2_result in m2_results_list])
-	m2_score = 1.0 + m2_time_min_list / m2_time_list # scores for each geometry
+	m2_score = 1.0 + (m2_time_min_list / m2_time_list) # scores for each geometry
 	
 	print("===M2 SCORE===")
 	print(m2_score)
@@ -62,18 +65,56 @@ def generate_plane_geometries():
 	# total score
 	total_score = m1_score + m2_score + m3_score
 
-	plt.figure("Scores")
-	geom_nums = range(len(m1_results_list))
-	plt.plot(geom_nums, m1_score, label="M1 Score")
-	plt.plot(geom_nums, m2_score, label="M2 Score")
-	plt.plot(geom_nums, m3_score, label="M3 Score")
-	plt.plot(geom_nums, total_score, label="Total Score")
+	# score histogram
+	fig = plt.figure("Scores")
+	ax = fig.add_subplot(111)
+	bar_locations = np.arange(len(m3_score))
+	bar_width = 0.2
+	ax.bar(bar_locations - 2*bar_width, m1_score, width=bar_width, label="M1 Score")
+	ax.bar(bar_locations - bar_width, m2_score, width=bar_width, label="M2 Score")
+	ax.bar(bar_locations, m3_score, width=bar_width, label="M3 Score")
+	ax.bar(bar_locations + bar_width, total_score, width=bar_width, label="Total Score")
+	plt.xticks(bar_locations)
+	plt.xlabel("Geometry Number")
+	plt.ylabel("Total Score")
+	plt.grid()
 	plt.legend()
 
 	plot_result_vars_vs_tp(m1_results_list, "v", "D")
 	plot_result_vars_vs_tp(m1_results_list, "v", "T")
-	plot_result_vars_vs_geom(m1_results_list, "time_lap")
-	# plt.show()
+	plot_result_vars_vs_tp(m1_results_list, "CDtot", "CLtot")
+	plot_result_vars_vs_geom(m2_results_list, "time_lap")
+	plot_result_vars_vs_geom(m2_results_list, "v")
+	
+	# plot 3D contour of designs in t/w ratio : endurance space
+	thrust_static = np.asarray(slice_list_of_dicts(m1_results_list, "thrust_static")) * 9.81 # in N
+	plane_weight = np.asarray(slice_list_of_dicts(m1_results_list, "plane_weight"))
+	tw_ratio = thrust_static / plane_weight
+	endurance = np.asarray(slice_list_of_dicts(m1_results_list, "endurance"))
+	fig = plt.figure()
+	ax = fig.add_subplot(111, projection='3d')
+	ax.plot_trisurf(
+		tw_ratio, 
+		endurance,
+		total_score,
+		shade=True)
+	ax.set_xlabel("Thrust to Weight Ratio")
+	ax.set_ylabel("Endurance (minutes)")
+	ax.set_zlabel("Total Score")
+
+	# plot 3D contour of designs in v_cruise: endurance space
+	v_cruise = np.asarray(slice_list_of_dicts(m1_results_list, "v_cruise"))
+	endurance = np.asarray(slice_list_of_dicts(m1_results_list, "endurance"))
+	fig = plt.figure()
+	ax = fig.add_subplot(111, projection='3d')
+	ax.plot_trisurf(
+		v_cruise, 
+		endurance,
+		total_score,
+		shade=True)
+	ax.set_xlabel("Cruise Velocity (m/s)")
+	ax.set_ylabel("Endurance (minutes)")
+	ax.set_zlabel("Total Score")
 
 	plt.show()
 
@@ -93,7 +134,7 @@ def calculate_cruise_conditions(results_list):
 		# find thrust where T = D
 		thrust_excess = results_list[i]["T"] - results_list[i]["D"]
 		results_list[i]["v_cruise"] = np.interp(0, thrust_excess, results_list[i]["v"]) # m/s
-		results_list[i]["time_lap"] = 1220 / results_list[i]["v_cruise"] + 30 # seconds
+		results_list[i]["time_lap"] = 610.0 / results_list[i]["v_cruise"] + 30 # seconds
 
 def plot_results(results_list):
 	plot_result_vars_vs_tp(results_list, "Alpha", "CLtot")
@@ -110,6 +151,7 @@ def plot_result_vars_vs_tp(results_list, var_1_name, var_2_name, new_figure=True
 		plt.plot(results_list[i][var_1_name], results_list[i][var_2_name], label="Plane Geometry {}".format(i))
 	plt.xlabel(var_1_name)
 	plt.ylabel(var_2_name)
+	plt.grid()
 	plt.legend()
 
 """
@@ -119,16 +161,13 @@ def plot_result_vars_vs_geom(results_list, var_name, new_figure=True):
 	if new_figure:
 		plt.figure("{} vs. Geom".format(var_name))
 
-	# take first element of var if it is subscriptable
-	try:
-		var_list = [result[var_name][0] for result in results_list]
-	except:
-		var_list = [result[var_name] for result in results_list]
+	var_list = slice_list_of_dicts(results_list, var_name)
 	
 	geom_list = range(len(results_list))
 	plt.plot(geom_list, var_list, label=var_name)
 	plt.xlabel("Geometry")
 	plt.ylabel(var_name)
+	plt.grid()
 	plt.legend()
 	
 if __name__ == "__main__":
