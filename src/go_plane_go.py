@@ -77,11 +77,17 @@ def generate_plane_geometries():
 	plt.xticks(bar_locations)
 	plt.xlabel("Geometry Number")
 	plt.ylabel("Total Score")
+	plt.title("Total Scores for Tested Geometries")
 	plt.grid()
 	plt.legend()
 
-	plot_result_vars_vs_tp(m1_results_list, "v", "D")
+	# D, T vs. v plot
 	plot_result_vars_vs_tp(m1_results_list, "v", "T")
+	for i in range(len(m1_results_list)):
+		plt.plot(m1_results_list[i]["v"], m1_results_list[i]["D"], "--")
+	plt.xlabel("Velocity (m/s)")
+	plt.ylabel("Drag (Dashed), Thrust (Solid) (N)")
+	plt.title("Drag and Thrust vs. Velocity")
 	plot_result_vars_vs_tp(m1_results_list, "CDtot", "CLtot")
 	plot_result_vars_vs_geom(m2_results_list, "time_lap")
 	plot_result_vars_vs_geom(m2_results_list, "v")
@@ -101,6 +107,7 @@ def generate_plane_geometries():
 	ax.set_xlabel("Thrust to Weight Ratio")
 	ax.set_ylabel("Endurance (minutes)")
 	ax.set_zlabel("Total Score")
+	ax.set_title("Design Scores in the Thrust to Weight Ratio vs. Endurance Space")
 
 	# plot 3D contour of designs in v_cruise: endurance space
 	v_cruise = np.asarray(slice_list_of_dicts(m1_results_list, "v_cruise"))
@@ -115,6 +122,7 @@ def generate_plane_geometries():
 	ax.set_xlabel("Cruise Velocity (m/s)")
 	ax.set_ylabel("Endurance (minutes)")
 	ax.set_zlabel("Total Score")
+	ax.set_title("Design Scores in the Cruise Velocity vs. Endurance Space")
 
 	plt.show()
 
@@ -147,6 +155,7 @@ Plots var_2_name (y) vs. var_1_name (x) for each geometry across test points
 def plot_result_vars_vs_tp(results_list, var_1_name, var_2_name, new_figure=True):
 	if new_figure:
 		plt.figure("{} vs. {}".format(var_2_name, var_1_name))
+		plt.title("{} vs. {}".format(var_2_name, var_1_name))
 	for i in range(len(results_list)):
 		plt.plot(results_list[i][var_1_name], results_list[i][var_2_name], label="Plane Geometry {}".format(i))
 	plt.xlabel(var_1_name)
