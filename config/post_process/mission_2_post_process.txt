@@ -1,0 +1,4 @@
+CDtot : CDtot + 0.04 # add radome
+
+# calculated stuff
+time_min = 120 # 3 laps in 2 minutes

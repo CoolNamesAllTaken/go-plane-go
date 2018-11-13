@@ -76,17 +76,20 @@ class Evaluator:
 	Runs the geometries through AVL for all test points and returns the result.
 	Output:
 		results_list = list of list dictionaries, where each dictionary containst the results for a single geometry across all its
-						test points (results_list[0]['Alpha'] returns a list of alpha values for geometry 0 across all test points)
+			test points (results_list[0]['Alpha'] returns a list of alpha values for geometry 0 across all test points)
 		run_avl = disables data analysis when set to False (good for just plotting stuff)
+		post_process_filename = .txt file containing post-processing operations to run on the test results
+			(used for adding Cd, calculating new vars, etc)
+		include_geometry = if True, adds aircraft geometry into results dictionary
 	"""
-	def evaluate_plane_geometries(self, run_avl=True):
+	def evaluate_plane_geometries(self, run_avl=True, post_process_filename=None, include_geometry=True):
 		# list of list dictionaries, where each dictionary contains the results for a single geometry across all its test points
 		results_list = [] # results_list[0]['Alpha'] returns a list of alpha values for geometry 0 across all test points
 		# evaluate each aircraft geometry
 		for geom_num in range(len(self.plane_geometries)):
 			print("Evaluating Geometry #{}".format(geom_num))
 			# evaluate geometry at multiple test points
-			test_point_results = []
+			test_point_results_list = []
 			for test_point_num in range(self.test_points_dict["num_test_points"]):
 				test_point_filename_no_ext = os.path.join(output_dirname, "plane_geom_{}_test_point_{}".format(
 					geom_num,
@@ -97,10 +100,19 @@ class Evaluator:
 							avl_exe_path,
 							test_point_filename_no_ext),
 						shell = True)
-				test_point_results.append(parse_results_file("{}_trim.txt".format(test_point_filename_no_ext )))
-				# print(test_point_results[test_point_num])
+				# parse in results from running test point in AVL
+				test_point_result = parse_results_file("{}_trim.txt".format(test_point_filename_no_ext ))
+				# add plane geometry dictionary into test point result dictionary (allows post-processor to use geometry properties)
+				if include_geometry:
+					test_point_result.update(self.plane_geometries[geom_num].vars)
+				# post-process AVL test results (change Cdtot, etc)
+				if post_process_filename:
+					test_point_result = parse_text_file(post_process_filename, test_point_result)
+				# add test point data to list of test point results
+				test_point_results_list.append(test_point_result)
+				# print(test_point_results_list[test_point_num])
 			# list dictionary of results for this plane geometry across all test points
-			results_list.append(list_dict_from_element_dicts(test_point_results))
+			results_list.append(list_dict_from_element_dicts(test_point_results_list))
 			# print(results_list[geom_num])
 		return results_list
 

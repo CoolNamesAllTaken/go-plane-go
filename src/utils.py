@@ -1,4 +1,5 @@
 import os
+import numpy as np
 
 """
 Parses the text file with the specified file path, and adds variables to a dictionary.  Creates
@@ -26,7 +27,7 @@ def parse_text_file(filename, vars=None):
 		lines = f.readlines()
 	line_num = 0
 	for line in lines:
-		words = line.split()
+		words = line.replace("(", " ( ").replace(")", " ) ").split() # make parentheses splittable
 
 		# skip blank or commented lines
 		if len(words) == 0 or "#" in words[0]:
@@ -134,6 +135,15 @@ def parse_results_file(filename, vars=None):
 				vars[words[i-1]] = parse_word(words[i+1])
 	return vars
 
+"""
+Takes a list of dictionaries containing single entries as values, and outputs a dictionary with values "stacked" into
+lists.
+Inputs:
+	element_dicts = list of dictionaries with single elements as values
+	list_dict = lists dictionary to append to, if any
+Returns:
+	list_dict = dictionary with lists as values
+"""
 def list_dict_from_element_dicts(element_dicts, list_dict=None):
 	# create lists dict if one is not provided
 	if list_dict is None:
@@ -144,4 +154,40 @@ def list_dict_from_element_dicts(element_dicts, list_dict=None):
 		# add elements from all element dictionaries with the same key to list in list dictionary
 		for element_dict in element_dicts:
 			list_dict[key].append(element_dict[key])
+		# try converting list to numpy array (fails for string lists)
+		try:
+			list_dict[key] = np.asarray(list_dict[key])
+		except:
+			pass
 	return list_dict
+
+"""
+Extracts the entry "var_name" from a list of dictionaries and returns them as a list
+Inputs:
+	dict_list = list of dictionaries with strings as keys
+	var_name = string to use as key in each dictionary
+Returns:
+	var_list = list of entries in each dictionary accessed with string key.  If dictionary
+		entries are subscriptable, creates a list of the first elements in each list.
+"""
+def slice_list_of_dicts(dict_list, var_name):
+	# take first element of var if it is subscriptable
+	try:
+		var_list = [curr_dict[var_name][0] for curr_dict in dict_list]
+	except:
+		var_list = [curr_dict[var_name] for curr_dict in dict_list]
+		
+	return var_list
+
+# def ndarray_dict_from_element_dicts(element_dicts, list_dict=None):
+# 	# create lists dict if one is not provided
+# 	if list_dict is None:
+# 		list_dict = {}
+# 	# find all keys from first element dictionary, iterate through
+# 	for key in element_dicts[0].keys():
+# 		list_dict[key] = np.ndarray((len(element_dicts),))
+# 		# add elements from all element dictionaries with the same key to list in list dictionary
+# 		for i in range(len(element_dicts)):
+# 			element_dict = element_dicts[i]
+# 			list_dict[key][i] = element_dict[key]
+# 	return list_dict

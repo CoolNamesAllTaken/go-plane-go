@@ -2,7 +2,7 @@ from utils import *
 
 import numpy as np
 
-avl_airfoil_dirname = "avl/airfoils/"
+avl_airfoil_dirname = "lib/avl/airfoils/"
 
 class PlaneGeometry:
 	"""
@@ -97,7 +97,7 @@ class PlaneGeometry:
 				f.write("BODY\nFuselage Right\n\n") # declare left fuselage
 				f.write("#NLengthwise     Spacing\n") # source distribution
 				f.write("{}            3\n\n".format(np.ceil(self.vars["fuse_length"]/0.01)))
-				f.write("TRANSLATE\n0.0     {:.3f}    0.0\n\n".format(-self.vars["fuse_y"]))
+				f.write("TRANSLATE\n0.0     {:.3f}    0.0\n\n".format(self.vars["fuse_y"]))
 				f.write("BFIL\n{}\n\n".format(fuse_filename)) # fuselage file at no_ext_filename.dat
 			# single fuselage
 			else:
@@ -277,38 +277,39 @@ class PlaneGeometry:
 	"""
 	def generate_fuse_file(self, fuse_filename):
 		# create array of x coordinates from nose->tail->nose
-		fuse_x_arr = np.arange(
+		fuse_x_array = np.arange(
 			0,
 			self.vars["fuse_diameter"]/2,
 			step = self.vars["fuse_diameter"]/20)
-		fuse_x_arr = np.append(fuse_x_arr,
+		fuse_x_array = np.append(fuse_x_array,
 			np.arange(
 				self.vars["fuse_diameter"]/2+(self.vars["fuse_diameter"])/10,
 				self.vars["fuse_length"] - self.vars["fuse_diameter"]/2,
 				step = self.vars["fuse_diameter"]/10))
-		fuse_x_arr = np.append(fuse_x_arr,
+		fuse_x_array = np.append(fuse_x_array,
 			np.arange(
 				self.vars["fuse_length"] - self.vars["fuse_diameter"]/2 + self.vars["fuse_diameter"]/20,
 				self.vars["fuse_length"],
 				step = self.vars["fuse_diameter"]/20))
-		fuse_x_arr = np.append(fuse_x_arr, np.flipud(fuse_x_arr)[1:-1]) # append reversed array to end, without overlapping the last point
+		fuse_x_array = np.flipud(fuse_x_array) # make array tail->nose
+		fuse_x_array = np.append(fuse_x_array, np.flipud(fuse_x_array)[1:-1]) # append reversed array to end, without overlapping the last point
 
 		# write coordinates to .dat file
 		with open(fuse_filename, "w+") as f:
-			for i in range(len(fuse_x_arr)):
+			for i in range(len(fuse_x_array)):
 				# nose
-				if (fuse_x_arr[i] < self.vars["fuse_diameter"]/2):
-					delta = np.sqrt(-(-fuse_x_arr[i] + self.vars["fuse_diameter"]/2)**2 + (self.vars["fuse_diameter"]/2)**2)
+				if (fuse_x_array[i] < self.vars["fuse_diameter"]/2):
+					delta = np.sqrt((self.vars["fuse_diameter"]/2)**2 - (self.vars["fuse_diameter"]/2 - fuse_x_array[i])**2)
 				# body
-				elif (fuse_x_arr[i] < self.vars["fuse_length"] - self.vars["fuse_diameter"]/2):
+				elif (fuse_x_array[i] < self.vars["fuse_length"] - self.vars["fuse_diameter"]/2):
 					delta = self.vars["fuse_diameter"]/2
 				# tail
 				else:
-					delta = np.sqrt(-(fuse_x_arr[i] - (self.vars["fuse_length"] - self.vars["fuse_diameter"]/2))**2 + self.vars["fuse_diameter"]**2)
+					delta = np.sqrt((self.vars["fuse_diameter"]/2)**2 -(fuse_x_array[i] - self.vars["fuse_length"] + self.vars["fuse_diameter"]/2)**2)
 
-				# starboard side
-				if i < len(fuse_x_arr)/2:
-					f.write("{:.3f}        {:.4f}\n".format(self.vars["fuse_x"] + fuse_x_arr[i], self.vars["fuse_z"] + delta))
-				# port side
+				# top side
+				if i < len(fuse_x_array)/2:
+					f.write("{:.3f}        {:.4f}\n".format(self.vars["fuse_x"] + fuse_x_array[i], self.vars["fuse_z"] + delta))
+				# bottom side
 				else:
-					f.write("{:.3f}        {:.4f}\n".format(self.vars["fuse_x"] + fuse_x_arr[i], self.vars["fuse_z"] - delta))
+					f.write("{:.3f}        {:.4f}\n".format(self.vars["fuse_x"] + fuse_x_array[i], self.vars["fuse_z"] - delta))
