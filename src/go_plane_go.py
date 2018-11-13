@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D # for 3d plotting
 import os.path
 import argparse
+import warnings
+warnings.filterwarnings("error") # catch warnings as errors
 
 from evaluator import Evaluator
 
@@ -89,42 +91,43 @@ def generate_plane_geometries():
 	plt.title("Drag and Thrust vs. Velocity")
 	
 	# plot 3D contour of designs in t/w ratio : endurance space
-	thrust_static = np.asarray(slice_list_of_dicts(m1_results_list, "thrust_static")) * 9.81 # in N
-	plane_weight = np.asarray(slice_list_of_dicts(m1_results_list, "plane_weight"))
-	tw_ratio = thrust_static / plane_weight
-	endurance = np.asarray(slice_list_of_dicts(m1_results_list, "endurance"))
-	fig = plt.figure()
-	ax = fig.add_subplot(111, projection='3d')
-	ax.plot_trisurf(
-		tw_ratio, 
-		endurance,
-		total_score,
-		shade=True)
-	ax.set_xlabel("Thrust to Weight Ratio")
-	ax.set_ylabel("Endurance (minutes)")
-	ax.set_zlabel("Total Score")
-	ax.set_title("Design Scores in the Thrust to Weight Ratio vs. Endurance Space")
+	# thrust_static = np.asarray(slice_list_of_dicts(m1_results_list, "thrust_static")) * 9.81 # in N
+	# plane_weight = np.asarray(slice_list_of_dicts(m1_results_list, "plane_weight"))
+	# tw_ratio = thrust_static / plane_weight
+	# endurance = np.asarray(slice_list_of_dicts(m1_results_list, "endurance"))
+	# fig = plt.figure()
+	# ax = fig.add_subplot(111, projection='3d')
+	# ax.plot_trisurf(
+	# 	tw_ratio, 
+	# 	endurance,
+	# 	total_score,
+	# 	shade=True)
+	# ax.set_xlabel("Thrust to Weight Ratio")
+	# ax.set_ylabel("Endurance (minutes)")
+	# ax.set_zlabel("Total Score")
+	# ax.set_title("Design Scores in the Thrust to Weight Ratio vs. Endurance Space")
 
 	# plot 3D contour of designs in v_cruise: endurance space
-	v_cruise = np.asarray(slice_list_of_dicts(m1_results_list, "v_cruise"))
-	endurance = np.asarray(slice_list_of_dicts(m1_results_list, "endurance"))
-	fig = plt.figure()
-	ax = fig.add_subplot(111, projection='3d')
-	ax.plot_trisurf(
-		v_cruise, 
-		endurance,
-		total_score,
-		shade=True)
-	ax.set_xlabel("Cruise Velocity (m/s)")
-	ax.set_ylabel("Endurance (minutes)")
-	ax.set_zlabel("Total Score")
-	ax.set_title("Design Scores in the Cruise Velocity vs. Endurance Space")
+	# v_cruise = np.asarray(slice_list_of_dicts(m1_results_list, "v_cruise"))
+	# endurance = np.asarray(slice_list_of_dicts(m1_results_list, "endurance"))
+	# fig = plt.figure()
+	# ax = fig.add_subplot(111, projection='3d')
+	# ax.plot_trisurf(
+	# 	v_cruise, 
+	# 	endurance,
+	# 	total_score,
+	# 	shade=True)
+	# ax.set_xlabel("Cruise Velocity (m/s)")
+	# ax.set_ylabel("Endurance (minutes)")
+	# ax.set_zlabel("Total Score")
+	# ax.set_title("Design Scores in the Cruise Velocity vs. Endurance Space")
 
 	# additional plots
 	plot_result_vars_vs_tp(m1_results_list, "CDtot", "CLtot")
 	plot_result_vars_vs_geom(m2_results_list, "time_lap")
 	plot_result_vars_vs_geom(m2_results_list, "v")
 	plot_result_vars_vs_geom(m2_results_list, "plane_mass")
+	plot_result_vars_vs_geom(m2_results_list, "v_cruise")
 
 	plt.show()
 
@@ -132,8 +135,14 @@ def calculate_cruise_conditions(results_list):
 	# iterate through plane geometries
 	for i in range(len(results_list)):
 		# list dictionary with results for a test point
-		results_list[i]["v"] = np.sqrt((results_list[i]["plane_weight"] / 
-			(0.5 * results_list[i]["rho"] * results_list[i]["Sref"] * results_list[i]["CLtot"])))
+
+		# calculate velocity required for L = W
+		try:
+			results_list[i]["v"] = np.sqrt((results_list[i]["plane_weight"] / 
+				(0.5 * results_list[i]["rho"] * results_list[i]["Sref"] * results_list[i]["CLtot"])))
+		except:
+			raise ValueError("Unable to calculate cruise velocity: CL may be negative.  Try starting sweep at higher alpha.")
+
 		# linear interpolation of thrust
 		results_list[i]["thrust"] = (results_list[i]["v_pitch"] - results_list[i]["v"]) / results_list[i]["v_pitch"] * results_list[i]["thrust_static"]
 		results_list[i]["q_inf"] = 0.5 * results_list[i]["rho"] * results_list[i]["v"]**2 
@@ -143,7 +152,7 @@ def calculate_cruise_conditions(results_list):
 
 		# find thrust where T = D
 		thrust_excess = results_list[i]["T"] - results_list[i]["D"]
-		results_list[i]["v_cruise"] = np.interp(0, thrust_excess, results_list[i]["v"]) # m/s
+		results_list[i]["v_cruise"] = np.interp(0, thrust_excess, results_list[i]["v"]) # m/s, velocity required for T = D
 		results_list[i]["time_lap"] = 610.0 / results_list[i]["v_cruise"] + 30 # seconds
 
 def plot_results(results_list):
@@ -168,16 +177,20 @@ def plot_result_vars_vs_tp(results_list, var_1_name, var_2_name, new_figure=True
 """
 Plots var_name (y) across geometries.  If var is subscriptable, takes the first entry.
 """
-def plot_result_vars_vs_geom(results_list, var_name, new_figure=True):
-	if new_figure:
-		plt.figure("{} vs. Geom".format(var_name))
+def plot_result_vars_vs_geom(results_list, var_name):
+	fig = plt.figure("{} vs. Geom".format(var_name))
+	ax = fig.add_subplot(111)
 
 	var_list = slice_list_of_dicts(results_list, var_name)
-	
 	geom_list = range(len(results_list))
-	plt.plot(geom_list, var_list, label=var_name)
-	plt.xlabel("Geometry")
+
+	bar_width = 0.2
+
+	ax.bar(geom_list, var_list, width=bar_width, label=var_name)
+	plt.xticks(geom_list)
+	plt.xlabel("Geometry Number")
 	plt.ylabel(var_name)
+	plt.title("{} vs. Geom".format(var_name))
 	plt.grid()
 	plt.legend()
 
