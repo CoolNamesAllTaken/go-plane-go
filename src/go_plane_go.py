@@ -24,7 +24,6 @@ def main():
 def generate_plane_geometries():
 	eval = Evaluator(design_rules_filename, design_sweep_filename, test_points_filename)
 
-
 	# mission 1 analysis
 	# run AVL and reuse results for m2, m3
 	m1_results_list = eval.evaluate_plane_geometries(run_avl=not args.plotonly, 
@@ -88,9 +87,6 @@ def generate_plane_geometries():
 	plt.xlabel("Velocity (m/s)")
 	plt.ylabel("Drag (Dashed), Thrust (Solid) (N)")
 	plt.title("Drag and Thrust vs. Velocity")
-	plot_result_vars_vs_tp(m1_results_list, "CDtot", "CLtot")
-	plot_result_vars_vs_geom(m2_results_list, "time_lap")
-	plot_result_vars_vs_geom(m2_results_list, "v")
 	
 	# plot 3D contour of designs in t/w ratio : endurance space
 	thrust_static = np.asarray(slice_list_of_dicts(m1_results_list, "thrust_static")) * 9.81 # in N
@@ -123,6 +119,12 @@ def generate_plane_geometries():
 	ax.set_ylabel("Endurance (minutes)")
 	ax.set_zlabel("Total Score")
 	ax.set_title("Design Scores in the Cruise Velocity vs. Endurance Space")
+
+	# additional plots
+	plot_result_vars_vs_tp(m1_results_list, "CDtot", "CLtot")
+	plot_result_vars_vs_geom(m2_results_list, "time_lap")
+	plot_result_vars_vs_geom(m2_results_list, "v")
+	plot_result_vars_vs_geom(m2_results_list, "plane_mass")
 
 	plt.show()
 
@@ -178,6 +180,10 @@ def plot_result_vars_vs_geom(results_list, var_name, new_figure=True):
 	plt.ylabel(var_name)
 	plt.grid()
 	plt.legend()
+
+def write_geometry_dict_output_file(filename, dict):
+	with open(filename, "w+") as f:
+		f.write(dict)
 	
 if __name__ == "__main__":
 	main()

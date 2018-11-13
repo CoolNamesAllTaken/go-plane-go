@@ -79,6 +79,9 @@ wing_spar_rho : 1.54954955 * 0.001 #g/mm^3
 wing_spar_mass : wing_spar_Owidth * wing_spar_Oheight * wing_spar_length * wing_spar_rho - ( wing_spar_Iwidth * wing_spar_Iheight * wing_spar_length * wing_spar_rho )
 structure_mass : structure_mass + wing_spar_mass
 
+# fudge factor
+structure_mass : structure_mass * 3
+
 plane_mass : propulsion_mass + structure_mass
 plane_weight : plane_mass * 9.81
 plane_acceleration : (thrust_static * 9.81 - plane_weight * 0.087) / (plane_mass) # 0.087 = sin(5 degrees)
